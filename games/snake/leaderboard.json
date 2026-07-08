@@ -1,5 +1,33 @@
 {
-  "updatedAt": "2026-07-08T07:32:19.680Z",
-  "totalPlayers": 0,
-  "leaderboard": []
+  "updatedAt": "2026-07-08T07:39:46.352Z",
+  "totalPlayers": 3,
+  "leaderboard": [
+    {
+      "rank": 1,
+      "score": 10,
+      "time": 6.6,
+      "maxSpeed": 105,
+      "uuid": "a35e7347-0039-4348-a483-36e6ba99745d",
+      "issueNumber": 11,
+      "createdAt": "2026-07-08T07:34:54Z"
+    },
+    {
+      "rank": 2,
+      "score": 5,
+      "time": 6.5,
+      "maxSpeed": 100,
+      "uuid": "a35e7347-0039-4348-a483-36e6ba99745d",
+      "issueNumber": 10,
+      "createdAt": "2026-07-08T07:33:59Z"
+    },
+    {
+      "rank": 3,
+      "score": 5,
+      "time": 4.4,
+      "maxSpeed": 100,
+      "uuid": "a35e7347-0039-4348-a483-36e6ba99745d",
+      "issueNumber": 9,
+      "createdAt": "2026-07-08T07:07:28Z"
+    }
+  ]
 }
