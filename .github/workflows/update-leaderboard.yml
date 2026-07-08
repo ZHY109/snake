@@ -7,6 +7,10 @@ on:
   issues:
     types: [opened]       # 新 issue 创建时触发
 
+permissions:
+  contents: write
+  issues: read
+
 jobs:
   update-leaderboard:
     runs-on: ubuntu-latest
