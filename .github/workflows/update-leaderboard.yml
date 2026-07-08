@@ -1,60 +1,60 @@
 name: Update Leaderboard
 
-  on:
-    workflow_dispatch:
-    issues:
-      types: [opened]
+on:
+  workflow_dispatch: {}
+  issues:
+    types: [opened]
 
-  jobs:
-    update:
-      runs-on: ubuntu-latest
-      permissions:
-        contents: write
-        issues: read
-      steps:
-        - uses: actions/checkout@v4
-          with:
-            token: ${{ secrets.SNAKE_TOKEN }}
-        - uses: actions/github-script@v7
-          with:
-            github-token: ${{ secrets.SNAKE_TOKEN }}
-            script: |
-              const fs = require('fs');
-              const issues = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'open',
-                labels: 'snake-game',
-                per_page: 100
-              });
-              const scores = [];
-              for (const issue of issues.data) {
-                const body = issue.body || '';
-                const scoreMatch = body.match(/\| 分数 \| (\d+) \|/);
-                const timeMatch = body.match(/\| 存活时间 \| ([\d.]+)s \|/);
-                const speedMatch = body.match(/\| 最高速度 \| (\d+)% \|/);
-                const uuidMatch = body.match(/\| UUID \| ([^\|]+) \|/);
-                if (scoreMatch) {
-                  scores.push({
-                    score: parseInt(scoreMatch[1]),
-                    time: timeMatch ? parseFloat(timeMatch[1]) : 0,
-                    maxSpeed: speedMatch ? parseInt(speedMatch[1]) : 100,
-                    uuid: uuidMatch ? uuidMatch[1].trim() : 'unknown',
-                    issueNumber: issue.number,
-                    createdAt: issue.created_at
-                  });
-                }
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SNAKE_TOKEN }}
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.SNAKE_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'snake-game',
+              per_page: 100
+            });
+            const scores = [];
+            for (const issue of issues.data) {
+              const body = issue.body || '';
+              const scoreMatch = body.match(/\| 分数 \| (\d+) \|/);
+              const timeMatch = body.match(/\| 存活时间 \| ([\d.]+)s \|/);
+              const speedMatch = body.match(/\| 最高速度 \| (\d+)% \|/);
+              const uuidMatch = body.match(/\| UUID \| ([^\|]+) \|/);
+              if (scoreMatch) {
+                scores.push({
+                  score: parseInt(scoreMatch[1]),
+                  time: timeMatch ? parseFloat(timeMatch[1]) : 0,
+                  maxSpeed: speedMatch ? parseInt(speedMatch[1]) : 100,
+                  uuid: uuidMatch ? uuidMatch[1].trim() : 'unknown',
+                  issueNumber: issue.number,
+                  createdAt: issue.created_at
+                });
               }
-              scores.sort((a, b) => b.score !== a.score ? b.score - a.score : b.time - a.time);
-              const leaderboard = scores.slice(0, 50).map((e, i) => ({ rank: i + 1, ...e }));
-              fs.writeFileSync('games/snake/leaderboard.json', JSON.stringify({
-                updatedAt: new Date().toISOString(),
-                totalPlayers: scores.length,
-                leaderboard
-              }, null, 2));
-        - run: |
-            git config user.email "action@github.com"
-            git config user.name "GitHub Action"
-            git add games/snake/leaderboard.json
-            git diff --staged --quiet || git commit -m "chore: update leaderboard [skip ci]"
-            git push
+            }
+            scores.sort((a, b) => b.score !== a.score ? b.score - a.score : b.time - a.time);
+            const leaderboard = scores.slice(0, 50).map((e, i) => ({ rank: i + 1, ...e }));
+            fs.writeFileSync('games/snake/leaderboard.json', JSON.stringify({
+              updatedAt: new Date().toISOString(),
+              totalPlayers: scores.length,
+              leaderboard
+            }, null, 2));
+      - run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add games/snake/leaderboard.json
+          git diff --staged --quiet || git commit -m "chore: update leaderboard [skip ci]"
+          git push
