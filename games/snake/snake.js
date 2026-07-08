@@ -601,12 +601,6 @@ async function submitScoreToGitHub() {
   if (encrypted) {
     body += `
 
-### 加密数据
-
-\`\`\`
-${encrypted}
-\`\`\`
-
 ### 验证信息
 
 - TimeCode: \`${timeCode}\`
