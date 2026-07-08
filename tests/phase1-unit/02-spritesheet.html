@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>02 - SpriteSheet Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .fail { background: #3d0a0a; border: 1px solid #f00; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    canvas { border: 2px solid #0ff; display: block; margin: 10px 0; background: #000; }
+    #log { background: #111; padding: 10px; margin-top: 10px; border: 1px solid #333;
+           max-height: 200px; overflow-y: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>02 - SpriteSheet Test</h1>
+  <div id="status" class="info">Generating synthetic sprite sheet...</div>
+  <canvas id="sheetCanvas" width="256" height="256" style="border-color:#ff0;"></canvas>
+  <canvas id="testCanvas" width="800" height="400"></canvas>
+  <div id="log"></div>
+
+  <script type="module">
+    import { E as Engine } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+
+    function log(msg, type = 'info') {
+      const colors = { info: '#66f', pass: '#0f0', fail: '#f00' };
+      logEl.innerHTML += `<div style="color:${colors[type]}">[${type.toUpperCase()}] ${msg}</div>`;
+      console.log(`[SpriteSheet Test] ${msg}`);
+    }
+
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type;
+    }
+
+    // Create a synthetic sprite sheet: 4x4 grid of colored 64x64 squares
+    function createSyntheticSpriteSheet() {
+      const canvas = document.getElementById('sheetCanvas');
+      const ctx = canvas.getContext('2d');
+      const colors = ['#ff0000','#00ff00','#0000ff','#ffff00',
+                       '#ff00ff','#00ffff','#ff8800','#88ff00',
+                       '#ff0088','#00ff88','#8800ff','#088fff',
+                       '#ff4444','#44ff44','#4444ff','#ffff44'];
+      const frames = {};
+      const names = ['apple','banana','cherry','grape','lemon','mango','orange','peach',
+                      'pear','plum','kiwi','melon','lime','fig','date','guava'];
+      let idx = 0;
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+          const name = names[idx];
+          const x = col * 64, y = row * 64;
+          ctx.fillStyle = colors[idx];
+          ctx.fillRect(x, y, 64, 64);
+          ctx.fillStyle = '#fff';
+          ctx.font = '10px monospace';
+          ctx.fillText(name, x + 4, y + 35);
+          frames[`fruits/${name}.png`] = {
+            frame: { x, y, w: 64, h: 64 }, rotated: false
+          };
+          idx++;
+        }
+      }
+      const jsonData = { frames };
+      const pngUrl = canvas.toDataURL('image/png');
+      const jsonBlob = new Blob([JSON.stringify(jsonData)], { type: 'application/json' });
+      const jsonUrl = URL.createObjectURL(jsonBlob);
+      return { pngUrl, jsonUrl, frameNames: Object.keys(frames) };
+    }
+
+    async function runTests() {
+      let allPassed = true;
+      let pngUrl;
+      let engine;
+
+      // Test 1: Create synthetic sprite sheet
+      try {
+        const result = createSyntheticSpriteSheet();
+        pngUrl = result.pngUrl;
+        log(`Synthetic sprite sheet created with ${result.frameNames.length} frames`, 'pass');
+        log(`Frame names: ${result.frameNames.slice(0, 5).join(', ')}...`, 'info');
+      } catch (e) {
+        log(`Sprite sheet generation failed: ${e.message}`, 'fail');
+        allPassed = false;
+        setStatus('FAILED: ' + e.message, 'fail');
+        return;
+      }
+
+      // Create engine (shared by Test 2 and Test 3)
+      try {
+        const testCanvas = document.getElementById('testCanvas');
+        engine = await Engine.createEngine(testCanvas, {
+          backgroundColor: { r: 0, g: 0, b: 0, a: 1 }
+        });
+        log('Engine created for sprite rendering', 'pass');
+      } catch (e) {
+        log(`Engine creation failed: ${e.message}`, 'fail');
+        allPassed = false;
+        setStatus('FAILED: ' + e.message, 'fail');
+        return;
+      }
+
+      // Test 2: Load sprite sheet via engine with spriteFrame rendering
+      try {
+        // Load the sprite sheet image
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = pngUrl;
+        });
+        log('Sprite sheet image loaded', 'pass');
+
+        // Add sprites with spriteFrame data (simulating what SpriteSheet.drawFrame does)
+        const fruits = ['apple','banana','cherry','grape','lemon','mango','orange','peach'];
+        fruits.forEach((name, i) => {
+          const col = i % 4, row = Math.floor(i / 4);
+          engine.addSprite({
+            id: `fruit_${i}`,
+            position: { x: 50 + i * 90, y: 50 },
+            velocity: { x: 0, y: 0 },
+            width: 64, height: 64,
+            spriteSheet: img,
+            spriteFrame: { x: col * 64, y: row * 64, w: 64, h: 64, rotated: false }
+          });
+        });
+        engine.render();
+        log('8 fruit sprites rendered with spriteFrame data', 'pass');
+      } catch (e) {
+        log(`Sprite rendering with spriteFrame failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 3: Rotated sprite frame
+      try {
+        const img = new Image();
+        img.src = pngUrl;
+        await new Promise(r => { img.onload = r; });
+
+        engine.addSprite({
+          id: 'rotated_test',
+          position: { x: 200, y: 200 },
+          velocity: { x: 0, y: 0 },
+          width: 64, height: 64,
+          rotation: Math.PI / 4,
+          spriteSheet: img,
+          spriteFrame: { x: 0, y: 0, w: 64, h: 64, rotated: false }
+        });
+        engine.render();
+        log('Rotated sprite with spriteFrame rendered', 'pass');
+      } catch (e) {
+        log(`Rotated sprite test failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      if (allPassed) {
+        setStatus('ALL TESTS PASSED', 'pass');
+      } else {
+        setStatus('SOME TESTS FAILED - check log below', 'fail');
+      }
+    }
+
+    runTests().catch(e => {
+      setStatus('FATAL ERROR: ' + e.message, 'fail');
+      console.error(e);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>07 - Spatial Hash / Collision Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .fail { background: #3d0a0a; border: 1px solid #f00; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    canvas { border: 2px solid #0ff; display: block; margin: 10px 0; background: #000; cursor: crosshair; }
+    #info { font-size: 13px; color: #aaa; margin: 5px 0; }
+    #log { background: #111; padding: 10px; margin-top: 10px; border: 1px solid #333;
+           max-height: 200px; overflow-y: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>07 - Spatial Hash / Collision Test</h1>
+  <div id="status" class="info">Initializing...</div>
+  <div id="info">Move mouse over canvas to detect nearby sprites. Hovered sprites will glow.</div>
+  <canvas id="testCanvas" width="800" height="600"></canvas>
+  <div id="log"></div>
+
+  <script type="module">
+    import { E as Engine } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const canvas = document.getElementById('testCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function log(msg, type = 'info') {
+      const colors = { info: '#66f', pass: '#0f0', fail: '#f00' };
+      logEl.innerHTML += `<div style="color:${colors[type]}">[${type.toUpperCase()}] ${msg}</div>`;
+      console.log(`[SpatialHash Test] ${msg}`);
+    }
+
+    async function runTests() {
+      let allPassed = true;
+
+      // Create engine
+      const engine = await Engine.createEngine(canvas, {
+        backgroundColor: { r: 0, g: 0, b: 0, a: 1 }
+      });
+
+      // Add 20 random sprites
+      const sprites = [];
+      const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ff8800','#88ff00'];
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * 700 + 50;
+        const y = Math.random() * 500 + 50;
+        const size = 30 + Math.random() * 30;
+        const color = colors[i % colors.length];
+        engine.addSprite({
+          id: `obj_${i}`, position: { x, y }, velocity: { x: 0, y: 0 },
+          width: size, height: size, color
+        });
+        sprites.push({ id: `obj_${i}`, x, y, size, color });
+      }
+      log(`Added ${sprites.length} sprites to engine`, 'pass');
+
+      // Test getSpriteAtPosition
+      let hitTests = 0, hitPasses = 0;
+      for (const s of sprites) {
+        hitTests++;
+        const hit = engine.getSpriteAtPosition(s.x + s.size / 2, s.y + s.size / 2);
+        if (hit && hit.id === s.id) hitPasses++;
+      }
+      if (hitPasses === hitTests) {
+        log(`getSpriteAtPosition: ${hitPasses}/${hitTests} center-hit tests passed`, 'pass');
+      } else {
+        log(`getSpriteAtPosition: only ${hitPasses}/${hitTests} center-hit tests passed`, 'fail');
+        allPassed = false;
+      }
+
+      // Test miss (position far from any sprite)
+      const miss = engine.getSpriteAtPosition(0, 0);
+      if (!miss) {
+        log('getSpriteAtPosition correctly returns null for empty area', 'pass');
+      } else {
+        log(`getSpriteAtPosition returned ${miss.id} at (0,0) - unexpected`, 'fail');
+        allPassed = false;
+      }
+
+      // Mouse tracking visualization
+      let mouseX = -1, mouseY = -1;
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        mouseX = (e.clientX - rect.left) * scaleX;
+        mouseY = (e.clientY - rect.top) * scaleY;
+      });
+
+      function drawScene() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, 800, 600);
+
+        for (const s of sprites) {
+          const isHovered = mouseX >= s.x && mouseX <= s.x + s.size &&
+                            mouseY >= s.y && mouseY <= s.y + s.size;
+
+          if (isHovered) {
+            ctx.shadowColor = s.color;
+            ctx.shadowBlur = 20;
+          } else {
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.fillStyle = s.color;
+          ctx.fillRect(s.x, s.y, s.size, s.size);
+          ctx.shadowBlur = 0;
+
+          // Label
+          ctx.fillStyle = '#fff';
+          ctx.font = '10px monospace';
+          ctx.fillText(s.id, s.x + 2, s.y + s.size - 4);
+        }
+
+        // Mouse crosshair
+        if (mouseX >= 0) {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(mouseX - 10, mouseY);
+          ctx.lineTo(mouseX + 10, mouseY);
+          ctx.moveTo(mouseX, mouseY - 10);
+          ctx.lineTo(mouseX, mouseY + 10);
+          ctx.stroke();
+        }
+
+        // Engine's getSpriteAtPosition result
+        if (mouseX >= 0) {
+          const hit = engine.getSpriteAtPosition(mouseX, mouseY);
+          ctx.fillStyle = '#fff';
+          ctx.font = '14px monospace';
+          ctx.fillText(`Hit: ${hit ? hit.id : 'none'}`, 10, 20);
+        }
+
+        requestAnimationFrame(drawScene);
+      }
+      drawScene();
+
+      // Test removeSprite + getSpriteAtPosition
+      try {
+        engine.removeSprite('obj_0');
+        const s0 = sprites[0];
+        const removed = engine.getSpriteAtPosition(s0.x + s0.size / 2, s0.y + s0.size / 2);
+        if (!removed || removed.id !== 'obj_0') {
+          log('After removeSprite, getSpriteAtPosition no longer finds removed sprite', 'pass');
+        } else {
+          log('Removed sprite still found by getSpriteAtPosition', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`Remove test failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      if (allPassed) {
+        statusEl.textContent = 'ALL TESTS PASSED - move mouse over canvas to see collision detection';
+        statusEl.className = 'pass';
+      } else {
+        statusEl.textContent = 'SOME TESTS FAILED';
+        statusEl.className = 'fail';
+      }
+    }
+
+    runTests().catch(e => {
+      statusEl.textContent = 'FATAL ERROR: ' + e.message;
+      statusEl.className = 'fail';
+      console.error(e);
+    });
+  </script>
+</body>
+</html>

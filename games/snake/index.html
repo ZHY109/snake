@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>加速贪吃蛇</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- HUD -->
+  <div id="hud">
+    <div id="scoreDisplay">分数: 0</div>
+    <div id="speedDisplay">速度: 100%</div>
+  </div>
+
+  <!-- 游戏画布 -->
+  <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+  <!-- 开始界面 -->
+  <div id="startModal" class="modal">
+    <div class="modal-content">
+      <h1>加速贪吃蛇</h1>
+      <p>每 5 秒速度增加 5%</p>
+      <button id="startBtn">开始游戏</button>
+    </div>
+  </div>
+
+  <!-- 游戏结束界面 -->
+  <div id="gameOverModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>游戏结束!</h2>
+      <div id="finalScore">0</div>
+      <div id="survivalTime">存活时间: 0s</div>
+      <div id="maxSpeed">最高速度: 100%</div>
+      <canvas id="shareCanvas" width="500" height="500" style="display:none;"></canvas>
+      <button id="shareBtn">分享成绩</button>
+      <button id="restartBtn">重新开始</button>
+    </div>
+  </div>
+
+  <script type="module" src="snake.js"></script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>05 - Game Loop Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .stopped { background: #3d3d0a; border: 1px solid #ff0; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    .stats { display: flex; gap: 20px; flex-wrap: wrap; margin: 10px 0; }
+    .stat-card { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px;
+                 text-align: center; min-width: 120px; }
+    .stat-card .value { font-size: 36px; color: #0f0; }
+    .stat-card .label { font-size: 12px; color: #888; margin-top: 5px; }
+    button { padding: 10px 20px; margin: 5px; font-size: 16px; font-family: monospace;
+             border: 2px solid #0ff; background: #0a0a3d; color: #0ff; border-radius: 4px;
+             cursor: pointer; }
+    button:hover { background: #0ff; color: #000; }
+    #dtGraph { border: 1px solid #333; margin-top: 10px; background: #111; }
+  </style>
+</head>
+<body>
+  <h1>05 - Game Loop Test</h1>
+  <div id="status" class="info">Ready. Click Start to begin.</div>
+
+  <div>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn">Stop</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="value" id="fps">0</div>
+      <div class="label">FPS</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="frames">0</div>
+      <div class="label">Total Frames</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="elapsed">0.0</div>
+      <div class="label">Elapsed (s)</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="dt">0.000</div>
+      <div class="label">Delta Time (s)</div>
+    </div>
+  </div>
+
+  <canvas id="dtGraph" width="800" height="150"></canvas>
+
+  <script type="module">
+    import { G as GameLoop } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const gameLoop = new GameLoop();
+    let frameCount = 0;
+    let startTime = 0;
+    let lastDt = 0;
+    const dtHistory = [];
+    const graphCanvas = document.getElementById('dtGraph');
+    const graphCtx = graphCanvas.getContext('2d');
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      if (!gameLoop.isRunning()) {
+        frameCount = 0;
+        startTime = performance.now();
+        gameLoop.start(
+          (dt) => {
+            lastDt = dt;
+            frameCount++;
+            dtHistory.push(dt);
+            if (dtHistory.length > 200) dtHistory.shift();
+          },
+          () => {
+            const elapsed = (performance.now() - startTime) / 1000;
+            const fps = elapsed > 0 ? Math.round(frameCount / elapsed) : 0;
+
+            document.getElementById('fps').textContent = fps;
+            document.getElementById('frames').textContent = frameCount;
+            document.getElementById('elapsed').textContent = elapsed.toFixed(1);
+            document.getElementById('dt').textContent = lastDt.toFixed(4);
+
+            // Draw dt graph
+            graphCtx.fillStyle = '#111';
+            graphCtx.fillRect(0, 0, 800, 150);
+            graphCtx.strokeStyle = '#0f0';
+            graphCtx.lineWidth = 1;
+            graphCtx.beginPath();
+            const maxDt = 0.05;
+            dtHistory.forEach((dt, i) => {
+              const x = (i / 200) * 800;
+              const y = 150 - (Math.min(dt, maxDt) / maxDt) * 140;
+              if (i === 0) graphCtx.moveTo(x, y);
+              else graphCtx.lineTo(x, y);
+            });
+            graphCtx.stroke();
+            // Target line at 16.67ms
+            graphCtx.strokeStyle = '#ff0';
+            graphCtx.setLineDash([5, 5]);
+            graphCtx.beginPath();
+            const targetY = 150 - (0.01667 / maxDt) * 140;
+            graphCtx.moveTo(0, targetY);
+            graphCtx.lineTo(800, targetY);
+            graphCtx.stroke();
+            graphCtx.setLineDash([]);
+          }
+        );
+        document.getElementById('status').textContent = 'Running...';
+        document.getElementById('status').className = 'pass';
+      }
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      gameLoop.stop();
+      document.getElementById('status').textContent = 'Stopped.';
+      document.getElementById('status').className = 'stopped';
+    });
+
+    console.log('[GameLoop Test] Page loaded. Click Start to begin.');
+  </script>
+</body>
+</html>

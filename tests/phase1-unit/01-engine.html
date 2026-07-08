@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>01 - Engine Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .fail { background: #3d0a0a; border: 1px solid #f00; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    canvas { border: 2px solid #0ff; display: block; margin: 10px 0; background: #000; }
+    #log { background: #111; padding: 10px; margin-top: 10px; border: 1px solid #333;
+           max-height: 200px; overflow-y: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>01 - Engine Test</h1>
+  <div id="status" class="info">Initializing...</div>
+  <canvas id="testCanvas" width="800" height="600"></canvas>
+  <div id="log"></div>
+
+  <script type="module">
+    import { E as Engine } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const canvas = document.getElementById('testCanvas');
+
+    function log(msg, type = 'info') {
+      const colors = { info: '#66f', pass: '#0f0', fail: '#f00' };
+      logEl.innerHTML += `<div style="color:${colors[type]}">[${type.toUpperCase()}] ${msg}</div>`;
+      console.log(`[Engine Test] ${msg}`);
+    }
+
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type;
+    }
+
+    async function runTests() {
+      let allPassed = true;
+      let engine;
+
+      // Test 1: Create engine
+      try {
+        log('Creating engine...');
+        engine = await Engine.createEngine(canvas, {
+          backgroundColor: { r: 0.1, g: 0.1, b: 0.2, a: 1 }
+        });
+        const engineType = navigator.gpu ? 'WebGPU' : 'Canvas2D (fallback)';
+        log(`Engine created: ${engineType}`, 'pass');
+      } catch (e) {
+        log(`Engine creation failed: ${e.message}`, 'fail');
+        allPassed = false;
+        setStatus('FAILED: ' + e.message, 'fail');
+        return;
+      }
+
+      // Test 2: Add and render colored sprites
+      try {
+        engine.addSprite({
+          id: 'red_box', position: { x: 100, y: 100 }, velocity: { x: 0, y: 0 },
+          width: 80, height: 80, color: '#ff0000'
+        });
+        engine.addSprite({
+          id: 'green_box', position: { x: 250, y: 100 }, velocity: { x: 0, y: 0 },
+          width: 80, height: 80, color: '#00ff00'
+        });
+        engine.addSprite({
+          id: 'blue_box', position: { x: 400, y: 100 }, velocity: { x: 0, y: 0 },
+          width: 80, height: 80, color: '#0000ff'
+        });
+        engine.addSprite({
+          id: 'yellow_box', position: { x: 550, y: 100 }, velocity: { x: 0, y: 0 },
+          width: 80, height: 80, color: '#ffff00'
+        });
+        engine.render();
+        log('4 colored sprites rendered successfully', 'pass');
+      } catch (e) {
+        log(`Sprite rendering failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 3: getSprite / getSpriteAtPosition
+      try {
+        const sprite = engine.getSprite('red_box');
+        if (sprite && sprite.color === '#ff0000') {
+          log('getSprite() returns correct sprite', 'pass');
+        } else {
+          log('getSprite() returned unexpected data', 'fail');
+          allPassed = false;
+        }
+
+        const hit = engine.getSpriteAtPosition(120, 120);
+        if (hit && hit.id === 'red_box') {
+          log('getSpriteAtPosition() correctly detects hit', 'pass');
+        } else {
+          log('getSpriteAtPosition() returned unexpected result', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`Sprite query failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 4: removeSprite
+      try {
+        engine.removeSprite('yellow_box');
+        engine.render();
+        const removed = engine.getSprite('yellow_box');
+        if (!removed) {
+          log('removeSprite() works correctly', 'pass');
+        } else {
+          log('removeSprite() did not remove sprite', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`removeSprite failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 5: State management
+      try {
+        engine.setState({ score: 42, health: 80 });
+        const state = engine.getState();
+        if (state.score === 42 && state.health === 80) {
+          log('State management works correctly', 'pass');
+        } else {
+          log(`State mismatch: ${JSON.stringify(state)}`, 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`State management failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      if (allPassed) {
+        setStatus('ALL TESTS PASSED', 'pass');
+      } else {
+        setStatus('SOME TESTS FAILED - check log below', 'fail');
+      }
+    }
+
+    runTests().catch(e => {
+      setStatus('FATAL ERROR: ' + e.message, 'fail');
+      console.error(e);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>09 - Engine + Security + Share</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    canvas { border: 2px solid #0ff; display: block; margin: 10px 0; background: #000; cursor: pointer; }
+    #hud { display: flex; gap: 20px; font-size: 14px; margin: 5px 0; flex-wrap: wrap; }
+    #hud span { color: #0f0; }
+    #encrypted { background: #111; padding: 8px; border: 1px solid #333; border-radius: 4px;
+                 font-size: 11px; word-break: break-all; color: #ff0; margin: 5px 0; max-height: 60px; overflow-y: auto; }
+    button { padding: 8px 16px; margin: 3px; font-family: monospace; font-size: 13px;
+             border: 2px solid #0ff; background: #0a0a3d; color: #0ff; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0ff; color: #000; }
+    #sharePreview { margin: 10px 0; }
+    #sharePreview img { max-width: 100%; border: 2px solid #333; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>09 - Engine + Security + Share (Combo Test)</h1>
+  <div id="status" class="info">Initializing...</div>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <div id="hud">
+    <div>Score: <span id="score">0</span></div>
+    <div>Targets: <span id="targets">0</span></div>
+  </div>
+  <div>Encrypted data: <div id="encrypted">-</div></div>
+  <div>
+    <button id="encryptBtn">Encrypt Score</button>
+    <button id="generateShareBtn">Generate Share Image</button>
+  </div>
+  <div id="sharePreview"></div>
+
+  <script type="module">
+    import { E as Engine, C as Security } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const canvas = document.getElementById('gameCanvas');
+    const engine = await Engine.createEngine(canvas, { backgroundColor: { r: 0.05, g: 0.05, b: 0.15, a: 1 } });
+
+    const security = new Security();
+    await security.initialize();
+
+    let score = 0;
+
+    // Add targets
+    function addTarget(id) {
+      engine.addSprite({
+        id, position: { x: Math.random() * 700 + 50, y: Math.random() * 300 + 50 },
+        velocity: { x: 0, y: 0 }, width: 30, height: 30, color: '#ff0000'
+      });
+    }
+    for (let i = 0; i < 5; i++) addTarget(`target_${i}`);
+
+    // Click to collect
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const hit = engine.getSpriteAtPosition(x, y);
+      if (hit && hit.id.startsWith('target_')) {
+        score += 10;
+        engine.setState({ score });
+        document.getElementById('score').textContent = score;
+        engine.removeSprite(hit.id);
+        addTarget(hit.id);
+        engine.render();
+      }
+    });
+
+    engine.render();
+
+    document.getElementById('targets').textContent = '5 (click red squares to score)';
+
+    // Encrypt button
+    document.getElementById('encryptBtn').addEventListener('click', () => {
+      const encrypted = security.encrypt({ score, time: 60, name: 'TestPlayer' });
+      document.getElementById('encrypted').textContent = encrypted;
+    });
+
+    // Share button - generates a canvas-based share image
+    document.getElementById('generateShareBtn').addEventListener('click', () => {
+      const shareCanvas = document.createElement('canvas');
+      shareCanvas.width = 800;
+      shareCanvas.height = 400;
+      const ctx = shareCanvas.getContext('2d');
+
+      // Gradient background
+      const grad = ctx.createLinearGradient(0, 0, 800, 400);
+      grad.addColorStop(0, '#667eea');
+      grad.addColorStop(1, '#764ba2');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 800, 400);
+
+      // Title
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 32px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Module Test Report', 400, 60);
+
+      // Score
+      ctx.font = '24px monospace';
+      ctx.fillText(`Score: ${score}`, 400, 120);
+      ctx.fillText(`Time: 60s`, 400, 160);
+
+      // Encrypted payload
+      const enc = security.encrypt({ score, time: 60 });
+      ctx.font = '12px monospace';
+      ctx.fillStyle = '#aaa';
+      const encShort = enc.length > 60 ? enc.substring(0, 60) + '...' : enc;
+      ctx.fillText(`Encrypted: ${encShort}`, 400, 220);
+
+      // Show preview
+      const preview = document.getElementById('sharePreview');
+      preview.innerHTML = '';
+      const img = new Image();
+      img.src = shareCanvas.toDataURL('image/png');
+      preview.appendChild(img);
+    });
+
+    document.getElementById('status').textContent = 'Click red squares to score, then encrypt or generate share image.';
+    document.getElementById('status').className = 'pass';
+  </script>
+</body>
+</html>

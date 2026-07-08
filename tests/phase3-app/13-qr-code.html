@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>13 - QR Code Tool</title>
+  <link rel="stylesheet" href="../../lib/qr-code-DiD7KNEW.css">
+</head>
+<body>
+  <div id="container">
+    <!-- Mode tabs -->
+    <div id="mode-tabs">
+      <button class="mode-tab active" data-mode="generate">Generate</button>
+      <button class="mode-tab" data-mode="scan">Scan</button>
+    </div>
+
+    <!-- Generate mode -->
+    <div id="generate-mode" class="mode-content active">
+      <div id="controls">
+        <h2>QR Code Generator</h2>
+
+        <div class="control-section">
+          <div class="input-group">
+            <label for="qrData">Text / URL</label>
+            <textarea id="qrData" rows="3" placeholder="Enter text or URL">Hello World!</textarea>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="slider-group">
+            <label>Size: <span id="scaleValue">10</span></label>
+            <input type="range" id="scale" min="1" max="20" value="10">
+          </div>
+          <div class="color-group">
+            <label>Fill: <input type="color" id="fillColor" value="#000000"></label>
+            <label>Background: <input type="color" id="backgroundColor" value="#ffffff"></label>
+          </div>
+          <div class="radio-group">
+            <label><input type="radio" name="ecLevel" value="L"> L</label>
+            <label><input type="radio" name="ecLevel" value="M" checked> M</label>
+            <label><input type="radio" name="ecLevel" value="Q"> Q</label>
+            <label><input type="radio" name="ecLevel" value="H"> H</label>
+          </div>
+        </div>
+
+        <button id="generateBtn" class="primary">Generate QR Code</button>
+        <div class="button-group">
+          <button id="downloadBtn">Download PNG</button>
+          <button id="downloadSvgBtn">Download SVG</button>
+        </div>
+
+        <div class="control-section">
+          <h3>Image Overlay</h3>
+          <input type="file" id="imageUpload" accept="image/*">
+          <div class="input-group">
+            <label>Image URL: <input type="text" id="imageURL"></label>
+          </div>
+          <button id="loadImageBtn">Load Image</button>
+          <div id="imagePreview" style="display:none;">
+            <img id="previewImg">
+          </div>
+          <div class="slider-group">
+            <label>Position X: <span id="posXValue">50</span>%</label>
+            <input type="range" id="posX" min="0" max="100" value="50">
+          </div>
+          <div class="slider-group">
+            <label>Position Y: <span id="posYValue">50</span>%</label>
+            <input type="range" id="posY" min="0" max="100" value="50">
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h3>Fountain Mode</h3>
+          <div class="checkbox-group">
+            <label><input type="checkbox" id="fountainEnabled"> Enable Fountain</label>
+          </div>
+          <div id="fountain-controls" style="display:none;">
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="fountainEnabledInline"> Inline</label>
+            </div>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="ditherCheck"> Dither</label>
+            </div>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="onlyDataBitsCheck"> Only Data Bits</label>
+            </div>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="randCheck"> Randomize</label>
+            </div>
+            <button id="playPauseBtn">Play/Pause</button>
+            <button id="resetBtn">Reset</button>
+            <button id="restartBtn">Restart</button>
+            <div class="slider-group">
+              <label>Version: <span id="versionValue">5</span></label>
+              <input type="range" id="version" min="1" max="40" value="5">
+              <button id="decreaseVersion">-</button>
+              <button id="increaseVersion">+</button>
+            </div>
+            <div id="progress-fill" style="width:0%;height:20px;background:#667eea;"></div>
+            <div id="progress-label">0%</div>
+            <div>Frames: <span id="current-frame">0</span> / <span id="total-frames">0</span> (<span id="estimated-frames">0</span> est.)</div>
+            <div id="scan-result" style="margin-top:10px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="output">
+        <div id="qrContainer">
+          <div id="placeholder">
+            <p>Enter text and click Generate</p>
+          </div>
+          <canvas id="qrCanvas"></canvas>
+        </div>
+        <div id="stats">
+          <div class="stat">Version: <strong id="statVersion">-</strong></div>
+          <div class="stat">Modules: <strong id="statModules">-</strong> (<span id="moduleCount">-</span>)</div>
+          <div class="stat">Capacity: <strong id="statCapacity">-</strong> (<span id="capacityInfo">-</span>)</div>
+        </div>
+        <div id="result-data" style="word-break:break-all;font-size:12px;color:#888;"></div>
+        <button id="copyResultBtn" style="margin-top:10px;">Copy Result</button>
+      </div>
+    </div>
+
+    <!-- Scan mode -->
+    <div id="scan-mode" class="mode-content">
+      <div id="scanner-controls-container">
+        <h2>QR Code Scanner</h2>
+        <div id="scanner-container">
+          <video id="scanner-video" autoplay playsinline></video>
+          <div id="scanner-overlay">
+            <div class="scan-region"></div>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button id="startScanBtn" class="primary">Start Camera</button>
+          <button id="stopScanBtn">Stop</button>
+          <button id="switchCameraBtn">Switch Camera</button>
+          <button id="toggleFlashBtn">Flash</button>
+        </div>
+        <div id="scanInstructions">
+          <h3>Instructions</h3>
+          <p>Point camera at a QR code to scan it.</p>
+        </div>
+        <div id="scan-progress" class="progress-bar" style="display:none;">
+          <div id="scan-progress-fill" style="height:100%;background:#667eea;width:0%;"></div>
+        </div>
+        <div id="scan-result-text" style="margin-top:10px;font-size:16px;color:#0f0;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="../../lib/qr-code-DbDFnmYs.js"></script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10 - Full Core Integration</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    canvas { border: 2px solid #0ff; display: block; margin: 10px 0; background: #000; }
+    #hud { display: flex; gap: 15px; font-size: 13px; flex-wrap: wrap; margin: 5px 0; }
+    #hud span { color: #0f0; }
+    .module-status { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+    .module-badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; }
+    .badge-ok { background: #0a3d0a; border: 1px solid #0f0; color: #0f0; }
+    .badge-fail { background: #3d0a0a; border: 1px solid #f00; color: #f00; }
+  </style>
+</head>
+<body>
+  <h1>10 - Full Core Integration Test</h1>
+  <div id="status" class="info">Initializing all modules...</div>
+
+  <div class="module-status" id="moduleStatus"></div>
+
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+  <div id="hud">
+    <score-display id="scoreDisplay"></score-display>
+    <div>FPS: <span id="fps">0</span></div>
+    <div>Position: <span id="pos">-</span></div>
+    <div>Collisions: <span id="collisions">0</span></div>
+  </div>
+
+  <script type="module">
+    import {
+      E as Engine, C as Security, G as GameLoop,
+      I as InputManager, M as MobileProtection
+    } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const statusEl = document.getElementById('status');
+    const moduleStatusEl = document.getElementById('moduleStatus');
+    const badges = {};
+
+    function setModuleStatus(name, ok) {
+      if (!badges[name]) {
+        badges[name] = document.createElement('div');
+        badges[name].className = 'module-badge';
+        moduleStatusEl.appendChild(badges[name]);
+      }
+      badges[name].textContent = `${name}: ${ok ? 'OK' : 'FAIL'}`;
+      badges[name].className = `module-badge ${ok ? 'badge-ok' : 'badge-fail'}`;
+    }
+
+    // Module 1: Engine
+    const canvas = document.getElementById('gameCanvas');
+    const engine = await Engine.createEngine(canvas, { backgroundColor: { r: 0.05, g: 0.05, b: 0.1, a: 1 } });
+    setModuleStatus('Engine', true);
+
+    // Module 2: Security
+    let securityOk = false;
+    try {
+      const security = new Security();
+      await security.initialize();
+      securityOk = true;
+    } catch (e) {
+      console.error('[FullCore] Security init failed:', e);
+    }
+    setModuleStatus('Security', securityOk);
+
+    // Module 3: InputManager
+    const input = new InputManager({
+      keybindings: { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down',
+                     a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' }
+    });
+    setModuleStatus('Input', true);
+
+    // Module 4: GameLoop
+    const gameLoop = new GameLoop();
+    setModuleStatus('GameLoop', true);
+
+    // Module 5: MobileProtection
+    const mobileProtection = new MobileProtection({
+      preventPullToRefresh: true, preventDoubleTapZoom: true,
+      preventPinchZoom: true, preventContextMenu: true, target: canvas
+    });
+    mobileProtection.enable();
+    setModuleStatus('MobileProtect', mobileProtection.isEnabled());
+
+    // Module 6: ScoreDisplay
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    let scoreDisplayOk = false;
+    try {
+      scoreDisplay.setScore(0);
+      scoreDisplayOk = true;
+    } catch (e) {
+      // Custom element might not be registered if main.js wasn't loaded
+      console.log('[FullCore] score-display not available:', e.message);
+    }
+    setModuleStatus('ScoreDisplay', scoreDisplayOk);
+
+    // Set up game scene
+    engine.addSprite({
+      id: 'player', position: { x: 384, y: 234 }, velocity: { x: 0, y: 0 },
+      width: 32, height: 32, color: '#00ff00'
+    });
+
+    const targetPositions = [
+      { x: 100, y: 100 }, { x: 600, y: 100 }, { x: 350, y: 400 },
+      { x: 150, y: 350 }, { x: 650, y: 350 }
+    ];
+    targetPositions.forEach((pos, i) => {
+      engine.addSprite({
+        id: `target_${i}`, position: pos, velocity: { x: 0, y: 0 },
+        width: 24, height: 24, color: '#ff0000'
+      });
+    });
+
+    // Add obstacles
+    engine.addSprite({ id: 'obs_0', position: { x: 300, y: 200 }, velocity: { x: 0, y: 0 }, width: 100, height: 20, color: '#666' });
+    engine.addSprite({ id: 'obs_1', position: { x: 500, y: 300 }, velocity: { x: 0, y: 0 }, width: 20, height: 100, color: '#666' });
+
+    let score = 0, collisionCount = 0, frameCount = 0, startTime = performance.now();
+    const SPEED = 200;
+
+    function checkCollision(a, b) {
+      return a.position.x < b.position.x + b.width && a.position.x + a.width > b.position.x &&
+             a.position.y < b.position.y + b.height && a.position.y + a.height > b.position.y;
+    }
+
+    gameLoop.start(
+      (dt) => {
+        input.update();
+        const player = engine.getSprite('player');
+        if (!player) return;
+
+        const oldX = player.position.x, oldY = player.position.y;
+        player.velocity.x = (input.directions.right - input.directions.left) * SPEED;
+        player.velocity.y = (input.directions.down - input.directions.up) * SPEED;
+        player.position.x += player.velocity.x * dt;
+        player.position.y += player.velocity.y * dt;
+
+        // Clamp
+        player.position.x = Math.max(0, Math.min(800 - player.width, player.position.x));
+        player.position.y = Math.max(0, Math.min(500 - player.height, player.position.y));
+
+        // Obstacle collision
+        for (const obsId of ['obs_0', 'obs_1']) {
+          const obs = engine.getSprite(obsId);
+          if (obs && checkCollision(player, obs)) {
+            player.position.x = oldX;
+            player.position.y = oldY;
+            collisionCount++;
+          }
+        }
+
+        // Target collision
+        for (let i = 0; i < 5; i++) {
+          const target = engine.getSprite(`target_${i}`);
+          if (target && checkCollision(player, target)) {
+            score += 10;
+            engine.setState({ score });
+            if (scoreDisplayOk) scoreDisplay.setScore(score);
+            target.position.x = Math.random() * 700 + 50;
+            target.position.y = Math.random() * 400 + 50;
+          }
+        }
+
+        frameCount++;
+      },
+      () => {
+        engine.render();
+        const player = engine.getSprite('player');
+        const elapsed = (performance.now() - startTime) / 1000;
+        document.getElementById('fps').textContent = elapsed > 0 ? Math.round(frameCount / elapsed) : 0;
+        document.getElementById('pos').textContent = player ?
+          `${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}` : '-';
+        document.getElementById('collisions').textContent = collisionCount;
+      }
+    );
+
+    statusEl.textContent = 'All modules loaded. WASD to move, collect red targets, avoid gray obstacles.';
+    statusEl.className = 'pass';
+  </script>
+</body>
+</html>

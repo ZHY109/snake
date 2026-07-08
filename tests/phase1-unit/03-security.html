@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>03 - Security (WASM) Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .fail { background: #3d0a0a; border: 1px solid #f00; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    .result { background: #111; padding: 8px; margin: 5px 0; border-left: 3px solid #66f;
+              word-break: break-all; font-size: 12px; }
+    #log { background: #111; padding: 10px; margin-top: 10px; border: 1px solid #333;
+           max-height: 300px; overflow-y: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>03 - Security (WASM) Test</h1>
+  <div id="status" class="info">Initializing WASM...</div>
+  <div id="results"></div>
+  <div id="log"></div>
+
+  <script type="module">
+    import { C as Security } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    const logEl = document.getElementById('log');
+
+    function log(msg, type = 'info') {
+      const colors = { info: '#66f', pass: '#0f0', fail: '#f00' };
+      logEl.innerHTML += `<div style="color:${colors[type]}">[${type.toUpperCase()}] ${msg}</div>`;
+      console.log(`[Security Test] ${msg}`);
+    }
+
+    function showResult(label, value) {
+      resultsEl.innerHTML += `<div class="result"><strong>${label}:</strong> ${value}</div>`;
+    }
+
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type;
+    }
+
+    async function runTests() {
+      let allPassed = true;
+      const security = new Security();
+
+      // Test 1: WASM initialization
+      try {
+        await security.initialize();
+        if (security.isInitialized()) {
+          log('WASM initialized successfully', 'pass');
+        } else {
+          log('WASM initialization reported not initialized', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`WASM initialization failed: ${e.message}`, 'fail');
+        allPassed = false;
+        setStatus('FAILED: ' + e.message, 'fail');
+        return;
+      }
+
+      // Test 2: Encrypt
+      try {
+        const testData = { score: 100, name: 'Player1', level: 5 };
+        const encrypted = security.encrypt(testData);
+        if (encrypted && typeof encrypted === 'string' && encrypted.length > 0) {
+          log(`Encrypt succeeded (length: ${encrypted.length})`, 'pass');
+          showResult('Encrypted', encrypted);
+        } else {
+          log('Encrypt returned empty or invalid result', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`Encrypt failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 3: Decrypt (round-trip)
+      try {
+        const testData = { score: 100, name: 'Player1', level: 5 };
+        const encrypted = security.encrypt(testData);
+        const decrypted = security.decrypt(encrypted);
+        if (decrypted.score === 100 && decrypted.name === 'Player1' && decrypted.level === 5) {
+          log('Decrypt round-trip successful - data matches', 'pass');
+          showResult('Decrypted', JSON.stringify(decrypted));
+        } else {
+          log(`Decrypt mismatch: ${JSON.stringify(decrypted)}`, 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`Decrypt failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 4: generateCommandHash
+      try {
+        const hash = security.generateCommandHash('test_command');
+        if (hash && typeof hash === 'string') {
+          log(`generateCommandHash succeeded`, 'pass');
+          showResult('Command Hash', hash);
+        } else {
+          log('generateCommandHash returned invalid result', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`generateCommandHash failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 5: generateTimeCode
+      try {
+        const timeCode = security.generateTimeCode();
+        if (timeCode && typeof timeCode === 'string') {
+          log(`generateTimeCode succeeded`, 'pass');
+          showResult('Time Code', timeCode);
+        } else {
+          log('generateTimeCode returned invalid result', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`generateTimeCode failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 6: generateHash
+      try {
+        const hash = security.generateHash('some data to hash');
+        if (hash && typeof hash === 'string') {
+          log(`generateHash succeeded`, 'pass');
+          showResult('Hash', hash);
+        } else {
+          log('generateHash returned invalid result', 'fail');
+          allPassed = false;
+        }
+      } catch (e) {
+        log(`generateHash failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      // Test 7: Time management
+      try {
+        security.resetTime();
+        const t1 = security.getTime();
+        security.incrementTime();
+        const t2 = security.getTime();
+        security.incrementTime();
+        const t3 = security.getTime();
+        if (t2 > t1 && t3 > t2) {
+          log(`Time management works: ${t1} -> ${t2} -> ${t3}`, 'pass');
+          showResult('Time values', `${t1} -> ${t2} -> ${t3}`);
+        } else {
+          log(`Time not incrementing: ${t1}, ${t2}, ${t3}`, 'fail');
+          allPassed = false;
+        }
+
+        security.resetTime();
+        const t4 = security.getTime();
+        log(`Time reset works: ${t3} -> ${t4}`, 'pass');
+      } catch (e) {
+        log(`Time management failed: ${e.message}`, 'fail');
+        allPassed = false;
+      }
+
+      if (allPassed) {
+        setStatus('ALL TESTS PASSED', 'pass');
+      } else {
+        setStatus('SOME TESTS FAILED - check log below', 'fail');
+      }
+    }
+
+    runTests().catch(e => {
+      setStatus('FATAL ERROR: ' + e.message, 'fail');
+      console.error(e);
+    });
+  </script>
+</body>
+</html>

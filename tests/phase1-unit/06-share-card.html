@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>06 - Share Card Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .fail { background: #3d0a0a; border: 1px solid #f00; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    button { padding: 10px 20px; margin: 5px; font-size: 14px; font-family: monospace;
+             border: 2px solid #0ff; background: #0a0a3d; color: #0ff; border-radius: 4px;
+             cursor: pointer; }
+    button:hover { background: #0ff; color: #000; }
+    #preview { margin: 10px 0; }
+    #preview img, #preview canvas { max-width: 100%; border: 2px solid #333; border-radius: 8px; }
+    #shareText { background: #111; padding: 10px; border: 1px solid #333; border-radius: 4px;
+                 margin: 10px 0; font-size: 14px; color: #0f0; }
+    #log { background: #111; padding: 10px; margin-top: 10px; border: 1px solid #333;
+           max-height: 200px; overflow-y: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>06 - Share Card Test</h1>
+  <div id="status" class="info">Loading share-card component...</div>
+
+  <share-card id="shareCard"></share-card>
+
+  <div>
+    <button id="generateBtn">Generate & Preview Image</button>
+    <button id="shareBtn">Share (Web Share API)</button>
+    <button id="downloadBtn">Download Image</button>
+  </div>
+
+  <div id="shareText"></div>
+  <div id="preview"></div>
+  <div id="log"></div>
+
+  <script type="module">
+    // Import main to register <share-card> custom element
+    try {
+      await import('../../lib/main-CcL0ZKFH.js');
+    } catch (e) {
+      console.log('[ShareCard Test] main.js import side effects (expected errors):', e.message);
+    }
+
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const previewEl = document.getElementById('preview');
+
+    function log(msg, type = 'info') {
+      const colors = { info: '#66f', pass: '#0f0', fail: '#f00' };
+      logEl.innerHTML += `<div style="color:${colors[type]}">[${type.toUpperCase()}] ${msg}</div>`;
+      console.log(`[ShareCard Test] ${msg}`);
+    }
+
+    // Wait for custom element to be defined
+    await customElements.whenDefined('share-card').catch(() => {
+      log('share-card custom element not registered. main.js may have failed to load.', 'fail');
+    });
+
+    const shareCard = document.getElementById('shareCard');
+
+    if (shareCard && shareCard.setConfig) {
+      log('share-card element found and has setConfig method', 'pass');
+    } else if (shareCard) {
+      log('share-card element found but missing setConfig', 'fail');
+    } else {
+      log('share-card element not found in DOM', 'fail');
+    }
+
+    // Configure share card
+    try {
+      shareCard.setConfig({
+        title: 'Module Test Report',
+        fields: [
+          { type: 'score', label: 'Score', show: true },
+          { type: 'time', label: 'Time', show: true }
+        ],
+        shareText: 'I scored {score} points in {time} seconds!',
+        image: {
+          width: 800,
+          height: 400,
+          background: {
+            type: 'gradient',
+            value: 'linear(135deg, #667eea, #764ba2)'
+          },
+          layout: {
+            type: 'vertical',
+            padding: 40,
+            spacing: 20,
+            sections: [
+              { type: 'title' },
+              { type: 'stat', field: 'score' },
+              { type: 'stat', field: 'time' },
+              { type: 'spacer' }
+            ]
+          },
+          character: {
+            renderType: 'sprite',
+            sprite: { id: 'player', color: '#00ff00' }
+          }
+        }
+      });
+      shareCard.setData({ score: 42, time: 60 });
+      log('Share card configured with test data', 'pass');
+    } catch (e) {
+      log(`setConfig failed: ${e.message}`, 'fail');
+    }
+
+    // Show share text
+    // Note: time field with value 60 gets formatted as "01:00" by the share-card's time formatter
+    try {
+      const text = shareCard.getShareText();
+      document.getElementById('shareText').textContent = `Share text: "${text}"`;
+      // Accept '60' as raw number or '01:00' as formatted time (min:sec)
+      if (text.includes('42') && (text.includes('60') || text.includes('01:00'))) {
+        log('Share text template substitution correct', 'pass');
+      } else {
+        log(`Share text unexpected: "${text}"`, 'fail');
+      }
+    } catch (e) {
+      log(`getShareText failed: ${e.message}`, 'fail');
+    }
+
+    // Generate button - calls share() which falls back to download + clipboard
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+      try {
+        await shareCard.share();
+        log('Share triggered (check downloads folder / clipboard)', 'pass');
+      } catch (e) {
+        log(`Share failed: ${e.message}`, 'fail');
+      }
+    });
+
+    // Share button - uses Web Share API if available
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      try {
+        await shareCard.share();
+        log('Share triggered successfully', 'pass');
+      } catch (e) {
+        log(`Share failed: ${e.message}`, 'fail');
+      }
+    });
+
+    // Download button
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+      try {
+        await shareCard.share();
+        log('Download triggered (check downloads folder)', 'pass');
+      } catch (e) {
+        log(`Download failed: ${e.message}`, 'fail');
+      }
+    });
+
+    document.getElementById('status').textContent = 'Share card loaded. Click buttons to test.';
+    document.getElementById('status').className = 'pass';
+  </script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module Verification Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    h1 { color: #0ff; margin-bottom: 15px; }
+    h2 { color: #ff0; margin: 20px 0 10px; }
+    .phase { background: #16213e; border-radius: 8px; padding: 15px; margin: 10px 0; }
+    .test-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #333; }
+    .test-row:last-child { border-bottom: none; }
+    .test-row input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; }
+    .test-name { flex: 1; font-size: 14px; }
+    .test-link { color: #0ff; text-decoration: none; font-size: 13px; }
+    .test-link:hover { text-decoration: underline; }
+    .test-notes { width: 200px; }
+    .test-notes input { width: 100%; padding: 4px; font-family: monospace; font-size: 12px;
+                        background: #111; border: 1px solid #333; color: #eee; border-radius: 3px; }
+    .sub-checks { margin-left: 30px; }
+    .sub-checks label { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+    .summary { background: #0a3d0a; border: 1px solid #0f0; border-radius: 8px; padding: 15px;
+               margin: 15px 0; font-size: 16px; }
+    .summary .fail { color: #f00; }
+    button { padding: 10px 20px; font-family: monospace; font-size: 14px;
+             border: 2px solid #0ff; background: #0a0a3d; color: #0ff;
+             border-radius: 4px; cursor: pointer; margin: 5px; }
+    button:hover { background: #0ff; color: #000; }
+    #exportOutput { background: #111; padding: 10px; border: 1px solid #333; border-radius: 4px;
+                    margin: 10px 0; max-height: 400px; overflow-y: auto; display: none;
+                    white-space: pre-wrap; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Module Verification Dashboard</h1>
+  <p style="color:#888;">Open each test page, verify it works, then check the boxes below.</p>
+
+  <div id="summary" class="summary" style="display:none;"></div>
+
+  <!-- Phase 1 -->
+  <div class="phase">
+    <h2>Phase 1: Unit Tests</h2>
+
+    <div class="test-row">
+      <input type="checkbox" id="t01" data-group="phase1">
+      <span class="test-name"><strong>01 - Engine</strong></span>
+      <a class="test-link" href="phase1-unit/01-engine.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t01"> Canvas2D renders colored squares</label>
+      <label><input type="checkbox" data-parent="t01"> WebGPU renders (if supported)</label>
+      <label><input type="checkbox" data-parent="t01"> Sprite add/remove/query works</label>
+      <label><input type="checkbox" data-parent="t01"> State management works</label>
+      <label><input type="checkbox" data-parent="t01"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t02" data-group="phase1">
+      <span class="test-name"><strong>02 - SpriteSheet</strong></span>
+      <a class="test-link" href="phase1-unit/02-spritesheet.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t02"> Synthetic sprite sheet generated</label>
+      <label><input type="checkbox" data-parent="t02"> Sprites rendered with spriteFrame</label>
+      <label><input type="checkbox" data-parent="t02"> Rotated sprite works</label>
+      <label><input type="checkbox" data-parent="t02"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t03" data-group="phase1">
+      <span class="test-name"><strong>03 - Security (WASM)</strong></span>
+      <a class="test-link" href="phase1-unit/03-security.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t03"> WASM initializes</label>
+      <label><input type="checkbox" data-parent="t03"> Encrypt produces output</label>
+      <label><input type="checkbox" data-parent="t03"> Decrypt round-trip matches</label>
+      <label><input type="checkbox" data-parent="t03"> Hash/time functions work</label>
+      <label><input type="checkbox" data-parent="t03"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t04" data-group="phase1">
+      <span class="test-name"><strong>04 - Input Manager</strong></span>
+      <a class="test-link" href="phase1-unit/04-input.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t04"> Keyboard directions respond</label>
+      <label><input type="checkbox" data-parent="t04"> Mouse position/click tracked</label>
+      <label><input type="checkbox" data-parent="t04"> Touch events captured</label>
+      <label><input type="checkbox" data-parent="t04"> Events logged correctly</label>
+      <label><input type="checkbox" data-parent="t04"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t05" data-group="phase1">
+      <span class="test-name"><strong>05 - Game Loop</strong></span>
+      <a class="test-link" href="phase1-unit/05-gameloop.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t05"> FPS ~60</label>
+      <label><input type="checkbox" data-parent="t05"> Frame count increments</label>
+      <label><input type="checkbox" data-parent="t05"> Start/Stop works</label>
+      <label><input type="checkbox" data-parent="t05"> DeltaTime graph stable</label>
+      <label><input type="checkbox" data-parent="t05"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t06" data-group="phase1">
+      <span class="test-name"><strong>06 - Share Card</strong></span>
+      <a class="test-link" href="phase1-unit/06-share-card.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t06"> Custom element loads</label>
+      <label><input type="checkbox" data-parent="t06"> Share text template correct</label>
+      <label><input type="checkbox" data-parent="t06"> Generate/Share button works</label>
+      <label><input type="checkbox" data-parent="t06"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t07" data-group="phase1">
+      <span class="test-name"><strong>07 - Spatial Hash</strong></span>
+      <a class="test-link" href="phase1-unit/07-spatial-hash.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t07"> Sprites visible on canvas</label>
+      <label><input type="checkbox" data-parent="t07"> Hover detection works</label>
+      <label><input type="checkbox" data-parent="t07"> Remove sprite updates correctly</label>
+      <label><input type="checkbox" data-parent="t07"> No console errors</label>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase">
+    <h2>Phase 2: Combination Tests</h2>
+
+    <div class="test-row">
+      <input type="checkbox" id="t08" data-group="phase2">
+      <span class="test-name"><strong>08 - Engine + Input + Loop</strong></span>
+      <a class="test-link" href="phase2-combo/08-engine-input-loop.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t08"> Square moves with keys</label>
+      <label><input type="checkbox" data-parent="t08"> Walls block movement</label>
+      <label><input type="checkbox" data-parent="t08"> FPS stable</label>
+      <label><input type="checkbox" data-parent="t08"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t09" data-group="phase2">
+      <span class="test-name"><strong>09 - Engine + Security + Share</strong></span>
+      <a class="test-link" href="phase2-combo/09-engine-security-share.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t09"> Click targets scores</label>
+      <label><input type="checkbox" data-parent="t09"> Encrypt shows data</label>
+      <label><input type="checkbox" data-parent="t09"> Share image generates</label>
+      <label><input type="checkbox" data-parent="t09"> No console errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t10" data-group="phase2">
+      <span class="test-name"><strong>10 - Full Core Integration</strong></span>
+      <a class="test-link" href="phase2-combo/10-full-core.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t10"> All module badges green</label>
+      <label><input type="checkbox" data-parent="t10"> Player moves, collects, blocked</label>
+      <label><input type="checkbox" data-parent="t10"> Score updates</label>
+      <label><input type="checkbox" data-parent="t10"> No console errors</label>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase">
+    <h2>Phase 3: Application Tests</h2>
+
+    <div class="test-row">
+      <input type="checkbox" id="t11" data-group="phase3">
+      <span class="test-name"><strong>11 - Flower Arrangement</strong></span>
+      <a class="test-link" href="phase3-app/11-flower.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t11"> Palette and canvas render</label>
+      <label><input type="checkbox" data-parent="t11"> Add/move/rotate/resize flowers</label>
+      <label><input type="checkbox" data-parent="t11"> Top/delete/flip work</label>
+      <label><input type="checkbox" data-parent="t11"> Share exports PNG</label>
+      <label><input type="checkbox" data-parent="t11"> No critical errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t12" data-group="phase3">
+      <span class="test-name"><strong>12 - Collection Game</strong></span>
+      <a class="test-link" href="phase3-app/12-game.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t12"> Name modal and game scene render</label>
+      <label><input type="checkbox" data-parent="t12"> Player moves, collects, blocked</label>
+      <label><input type="checkbox" data-parent="t12"> Timer countdown works</label>
+      <label><input type="checkbox" data-parent="t12"> Score/submit/share work</label>
+      <label><input type="checkbox" data-parent="t12"> No critical errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t13" data-group="phase3">
+      <span class="test-name"><strong>13 - QR Code Tool</strong></span>
+      <a class="test-link" href="phase3-app/13-qr-code.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t13"> Generate QR from text</label>
+      <label><input type="checkbox" data-parent="t13"> Customize size/color/EC level</label>
+      <label><input type="checkbox" data-parent="t13"> Scan mode works (camera/upload)</label>
+      <label><input type="checkbox" data-parent="t13"> No critical errors</label>
+    </div>
+
+    <div class="test-row">
+      <input type="checkbox" id="t14" data-group="phase3">
+      <span class="test-name"><strong>14 - Ultrasound</strong></span>
+      <a class="test-link" href="phase3-app/14-ultrasound.html" target="_blank">Open</a>
+    </div>
+    <div class="sub-checks">
+      <label><input type="checkbox" data-parent="t14"> Role switch and keypad work</label>
+      <label><input type="checkbox" data-parent="t14"> Listen and frequency monitor work</label>
+      <label><input type="checkbox" data-parent="t14"> Parameters adjustable</label>
+      <label><input type="checkbox" data-parent="t14"> No critical errors</label>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;">
+    <button onclick="exportResults()">Export as Markdown</button>
+    <button onclick="resetAll()">Reset All</button>
+  </div>
+  <pre id="exportOutput"></pre>
+
+  <script>
+    // Auto-update summary
+    function updateSummary() {
+      const all = document.querySelectorAll('.sub-checks input[type=checkbox]');
+      const checked = document.querySelectorAll('.sub-checks input[type=checkbox]:checked');
+      const parents = document.querySelectorAll('.test-row > input[type=checkbox]');
+      let parentChecked = 0;
+      parents.forEach(p => { if (p.checked) parentChecked++; });
+
+      const summary = document.getElementById('summary');
+      summary.style.display = 'block';
+      summary.innerHTML = `Sub-items: <strong>${checked.length}/${all.length}</strong> passed | ` +
+        `Test groups: <strong>${parentChecked}/${parents.length}</strong> complete`;
+    }
+
+    // Link sub-checkboxes to parent
+    document.querySelectorAll('.sub-checks input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const parentId = cb.getAttribute('data-parent');
+        const parent = document.getElementById(parentId);
+        const siblings = document.querySelectorAll(`[data-parent="${parentId}"]`);
+        const allChecked = Array.from(siblings).every(s => s.checked);
+        parent.checked = allChecked;
+        updateSummary();
+      });
+    });
+
+    document.querySelectorAll('.test-row > input[type=checkbox]').forEach(p => {
+      p.addEventListener('change', () => {
+        const siblings = document.querySelectorAll(`[data-parent="${p.id}"]`);
+        siblings.forEach(s => s.checked = p.checked);
+        updateSummary();
+      });
+    });
+
+    function exportResults() {
+      let md = '# Module Test Report\n\n';
+      md += `**Date**: ${new Date().toISOString().split('T')[0]}\n`;
+      md += `**Browser**: ${navigator.userAgent}\n\n`;
+
+      const phases = [
+        { name: 'Phase 1: Unit Tests', ids: ['t01','t02','t03','t04','t05','t06','t07'] },
+        { name: 'Phase 2: Combination Tests', ids: ['t08','t09','t10'] },
+        { name: 'Phase 3: Application Tests', ids: ['t11','t12','t13','t14'] }
+      ];
+
+      for (const phase of phases) {
+        md += `## ${phase.name}\n\n`;
+        md += '| Test | Result |\n|------|--------|\n';
+        for (const id of phase.ids) {
+          const el = document.getElementById(id);
+          const name = el.closest('.test-row').querySelector('.test-name').textContent;
+          const status = el.checked ? 'PASS' : 'FAIL';
+          md += `| ${name} | ${status} |\n`;
+        }
+        md += '\n';
+      }
+
+      const output = document.getElementById('exportOutput');
+      output.style.display = 'block';
+      output.textContent = md;
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(md).then(() => {
+        alert('Markdown copied to clipboard! Paste into docs/test-results.md');
+      });
+    }
+
+    function resetAll() {
+      if (confirm('Reset all checkboxes?')) {
+        document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+        updateSummary();
+      }
+    }
+
+    updateSummary();
+  </script>
+</body>
+</html>

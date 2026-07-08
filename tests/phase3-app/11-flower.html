@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>11 - Flower Arrangement App</title>
+  <link rel="stylesheet" href="../../lib/flower-is69TI8K.css">
+  <style>
+    /* Additional test-specific styles if needed */
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <!-- Palette -->
+    <div id="palette">
+      <h2>Flowers</h2>
+      <div id="flowerPalette"></div>
+      <div class="key-hint">Keys: 1-9,0,i,o</div>
+    </div>
+
+    <!-- Canvas area -->
+    <div id="canvasContainer">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <button id="clearBtn">Clear</button>
+      <button id="shareBtn">Share</button>
+      <div class="canvas-hint">
+        <div>Drag flowers | A/D rotate | W/S size</div>
+        <div>Q top | E delete | / flip | Tab switch</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls" class="disabled">
+      <div class="control-group">
+        <game-slider label="Rotation (A/D)" min="0" max="360" step="10" value="0"></game-slider>
+      </div>
+      <div class="control-group">
+        <game-slider label="Size (W/S)" min="128" max="512" step="16" value="256"></game-slider>
+      </div>
+      <button id="bringToTopBtn">Bring to Top</button>
+      <button id="deleteBtn">Delete</button>
+      <button id="flipBtn">Flip</button>
+    </div>
+  </div>
+
+  <script type="module" src="../../lib/flower-D58nqTnV.js"></script>
+</body>
+</html>

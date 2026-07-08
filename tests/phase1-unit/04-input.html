@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>04 - Input Manager Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    .panel { display: flex; gap: 20px; flex-wrap: wrap; margin: 10px 0; }
+    .card { background: #111; border: 1px solid #333; border-radius: 8px; padding: 15px; min-width: 200px; }
+    .card h3 { color: #0ff; margin-bottom: 10px; font-size: 14px; }
+    .direction-pad { display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 30px 30px 30px; gap: 2px; }
+    .dir-bar { background: #333; border-radius: 3px; transition: background 0.1s; }
+    .dir-bar.active { background: #0f0; }
+    .dir-up { grid-column: 2; grid-row: 1; }
+    .dir-left { grid-column: 1; grid-row: 2; }
+    .dir-center { grid-column: 2; grid-row: 2; background: #222; text-align: center; font-size: 10px; line-height: 30px; }
+    .dir-right { grid-column: 3; grid-row: 2; }
+    .dir-down { grid-column: 2; grid-row: 3; }
+    .stat { margin: 5px 0; font-size: 13px; }
+    .stat span { color: #0f0; }
+    #eventLog { max-height: 150px; overflow-y: auto; font-size: 11px; background: #0a0a0a;
+                padding: 8px; border: 1px solid #333; border-radius: 4px; }
+    .event-entry { margin: 2px 0; color: #aaa; }
+    .event-entry .type { color: #ff0; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+  </style>
+</head>
+<body>
+  <h1>04 - Input Manager Test</h1>
+  <div id="status" class="info">Initializing input manager...</div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>Direction Keys</h3>
+      <div class="direction-pad">
+        <div class="dir-bar dir-up" id="dirUp">UP</div>
+        <div class="dir-bar dir-left" id="dirLeft">L</div>
+        <div class="dir-center">+</div>
+        <div class="dir-bar dir-right" id="dirRight">R</div>
+        <div class="dir-bar dir-down" id="dirDown">DN</div>
+      </div>
+      <div class="stat">Magnitude: <span id="magnitude">-</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Mouse</h3>
+      <div class="stat">Position: <span id="mousePos">0, 0</span></div>
+      <div class="stat">Down: <span id="mouseDown">false</span></div>
+      <div class="stat">Scroll: <span id="scrollDelta">0, 0</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Touch</h3>
+      <div class="stat">Active touches: <span id="touchCount">0</span></div>
+      <div class="stat" id="touchInfo">-</div>
+    </div>
+
+    <div class="card">
+      <h3>Active Input</h3>
+      <div class="stat">hasActiveInput: <span id="hasActive">false</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 10px;">
+    <h3>Event Log</h3>
+    <div id="eventLog"></div>
+  </div>
+
+  <script type="module">
+    import { I as InputManager } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const input = new InputManager({
+      keybindings: {
+        w: 'up', arrowup: 'up',
+        s: 'down', arrowdown: 'down',
+        a: 'left', arrowleft: 'left',
+        d: 'right', arrowright: 'right'
+      }
+    });
+
+    const eventLog = document.getElementById('eventLog');
+    function logEvent(type, data) {
+      const entry = document.createElement('div');
+      entry.className = 'event-entry';
+      entry.innerHTML = `<span class="type">${type}</span>: ${JSON.stringify(data).substring(0, 80)}`;
+      eventLog.prepend(entry);
+      if (eventLog.children.length > 50) eventLog.removeChild(eventLog.lastChild);
+    }
+
+    input.on('tap', (d) => logEvent('tap', d));
+    input.on('double-tap', (d) => logEvent('double-tap', d));
+    input.on('swipe', (d) => logEvent('swipe', d));
+    input.on('pinch', (d) => logEvent('pinch', d));
+    input.on('rotate', (d) => logEvent('rotate', d));
+
+    document.getElementById('status').textContent = 'Input manager active. Press keys, move mouse, or touch the screen.';
+    document.getElementById('status').className = 'pass';
+
+    function updateDisplay() {
+      input.update();
+
+      // Directions
+      document.getElementById('dirUp').className = 'dir-bar dir-up' + (input.directions.up > 0 ? ' active' : '');
+      document.getElementById('dirDown').className = 'dir-bar dir-down' + (input.directions.down > 0 ? ' active' : '');
+      document.getElementById('dirLeft').className = 'dir-bar dir-left' + (input.directions.left > 0 ? ' active' : '');
+      document.getElementById('dirRight').className = 'dir-bar dir-right' + (input.directions.right > 0 ? ' active' : '');
+      document.getElementById('magnitude').textContent =
+        `U:${input.directions.up.toFixed(2)} D:${input.directions.down.toFixed(2)} L:${input.directions.left.toFixed(2)} R:${input.directions.right.toFixed(2)}`;
+
+      // Mouse
+      const mp = input.getMousePosition();
+      document.getElementById('mousePos').textContent = `${mp.x}, ${mp.y}`;
+      document.getElementById('mouseDown').textContent = input.isMouseDown().toString();
+      const sd = input.getScrollDelta();
+      document.getElementById('scrollDelta').textContent = `${sd.x.toFixed(1)}, ${sd.y.toFixed(1)}`;
+
+      // Touch
+      const state = input.getState();
+      document.getElementById('touchCount').textContent = state.touches.length.toString();
+      if (state.touches.length > 0) {
+        document.getElementById('touchInfo').textContent = state.touches.map(
+          t => `(${t.x.toFixed(0)},${t.y.toFixed(0)})`
+        ).join(' ');
+      } else {
+        document.getElementById('touchInfo').textContent = '-';
+      }
+
+      // Active
+      document.getElementById('hasActive').textContent = input.hasActiveInput().toString();
+
+      requestAnimationFrame(updateDisplay);
+    }
+    requestAnimationFrame(updateDisplay);
+  </script>
+</body>
+</html>

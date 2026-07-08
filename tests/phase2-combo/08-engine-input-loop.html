@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>08 - Engine + Input + Loop</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+    h1 { color: #0ff; margin-bottom: 10px; }
+    #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .pass { background: #0a3d0a; border: 1px solid #0f0; }
+    .info { background: #0a0a3d; border: 1px solid #66f; }
+    canvas { border: 2px solid #0ff; display: block; margin: 10px 0; background: #000; }
+    #hud { display: flex; gap: 20px; font-size: 14px; margin: 5px 0; }
+    #hud span { color: #0f0; }
+  </style>
+</head>
+<body>
+  <h1>08 - Engine + Input + Loop (Combo Test)</h1>
+  <div id="status" class="info">Initializing...</div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="hud">
+    <div>FPS: <span id="fps">0</span></div>
+    <div>Position: <span id="pos">400, 300</span></div>
+    <div>Directions: <span id="dirs">-</span></div>
+  </div>
+
+  <script type="module">
+    import { E as Engine, G as GameLoop, I as InputManager } from '../../lib/MobileProtection-DVGpnIWZ.js';
+
+    const canvas = document.getElementById('gameCanvas');
+    const engine = await Engine.createEngine(canvas, { backgroundColor: { r: 0.05, g: 0.05, b: 0.1, a: 1 } });
+
+    const input = new InputManager({
+      keybindings: { w: 'up', arrowup: 'up', s: 'down', arrowdown: 'down',
+                     a: 'left', arrowleft: 'left', d: 'right', arrowright: 'right' }
+    });
+
+    // Add player
+    engine.addSprite({
+      id: 'player', position: { x: 384, y: 284 }, velocity: { x: 0, y: 0 },
+      width: 32, height: 32, color: '#00ff00'
+    });
+
+    // Add boundary walls
+    const wallColor = '#444';
+    engine.addSprite({ id: 'wall_t', position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, width: 800, height: 10, color: wallColor });
+    engine.addSprite({ id: 'wall_b', position: { x: 0, y: 590 }, velocity: { x: 0, y: 0 }, width: 800, height: 10, color: wallColor });
+    engine.addSprite({ id: 'wall_l', position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, width: 10, height: 600, color: wallColor });
+    engine.addSprite({ id: 'wall_r', position: { x: 790, y: 0 }, velocity: { x: 0, y: 0 }, width: 10, height: 600, color: wallColor });
+
+    const SPEED = 200;
+    const gameLoop = new GameLoop();
+    let frameCount = 0, startTime = performance.now();
+
+    gameLoop.start(
+      (dt) => {
+        input.update();
+        const player = engine.getSprite('player');
+        if (player) {
+          const vx = (input.directions.right - input.directions.left) * SPEED;
+          const vy = (input.directions.down - input.directions.up) * SPEED;
+          player.position.x += vx * dt;
+          player.position.y += vy * dt;
+
+          // Clamp to bounds
+          player.position.x = Math.max(10, Math.min(800 - 10 - player.width, player.position.x));
+          player.position.y = Math.max(10, Math.min(600 - 10 - player.height, player.position.y));
+        }
+        frameCount++;
+      },
+      () => {
+        engine.render();
+        const player = engine.getSprite('player');
+        const elapsed = (performance.now() - startTime) / 1000;
+        document.getElementById('fps').textContent = elapsed > 0 ? Math.round(frameCount / elapsed) : 0;
+        document.getElementById('pos').textContent = player ?
+          `${player.position.x.toFixed(0)}, ${player.position.y.toFixed(0)}` : '-';
+        document.getElementById('dirs').textContent =
+          `U:${input.directions.up} D:${input.directions.down} L:${input.directions.left} R:${input.directions.right}`;
+      }
+    );
+
+    document.getElementById('status').textContent = 'Use WASD or arrow keys to move the green square.';
+    document.getElementById('status').className = 'pass';
+  </script>
+</body>
+</html>
