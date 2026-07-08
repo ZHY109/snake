@@ -20,21 +20,24 @@ jobs:
           github-token: ${{ secrets.SNAKE_TOKEN }}
           script: |
             const fs = require('fs');
+            // 获取所有 open issues（不过滤 label）
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'snake-game',
               per_page: 100
             });
+            console.log(`Found ${issues.data.length} total open issues`);
             const scores = [];
             for (const issue of issues.data) {
               const body = issue.body || '';
+              console.log(`Issue #${issue.number}: title="${issue.title}"`);
               const scoreMatch = body.match(/\| 分数 \| (\d+) \|/);
               const timeMatch = body.match(/\| 存活时间 \| ([\d.]+)s \|/);
               const speedMatch = body.match(/\| 最高速度 \| (\d+)% \|/);
               const uuidMatch = body.match(/\| UUID \| ([^\|]+) \|/);
               if (scoreMatch) {
+                console.log(`  -> Score found: ${scoreMatch[1]}`);
                 scores.push({
                   score: parseInt(scoreMatch[1]),
                   time: timeMatch ? parseFloat(timeMatch[1]) : 0,
