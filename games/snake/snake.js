@@ -5,6 +5,7 @@ import {
   G as GameLoop,
   I as InputManager,
   M as MobileProtection,
+  C as Security,
 } from '../../lib/MobileProtection-DVGpnIWZ.js';
 
 // 游戏配置
@@ -535,7 +536,7 @@ const GITHUB_CONFIG = {
   owner: 'ZHY109',
   repo: 'snake',
   // Token 分段存储
-  _t: ['ghp_IwG', 'bnO4raA', 'IJJwS2p', 'bJuGvkg', 'Y3KiUd0', 'OFsxp'],
+  _t: ['ghp_j4k', 'TOtrr', 'mwMZ4', 'c9f6x', 'Ycmfk', 'GcAam', 'rw1n4', 'xs1'],
   get token() { return this._t.join(''); }
 };
 
@@ -549,9 +550,13 @@ function getSessionUUID() {
   return uuid;
 }
 
-// 提交分数到 GitHub Issues
+// 提交分数到 GitHub Issues（使用 lib 的 Security 模块）
 async function submitScoreToGitHub() {
   const survivalTime = ((performance.now() - gameState.startTime) / 1000).toFixed(1);
+
+  // 初始化 Security 模块
+  const security = new Security();
+  await security.initialize();
 
   // 准备数据
   const scoreData = {
@@ -563,6 +568,11 @@ async function submitScoreToGitHub() {
     timestamp: new Date().toISOString(),
   };
 
+  // 使用 Security 加密
+  const encrypted = security.encrypt(scoreData);
+  const timeCode = security.generateTimeCode();
+  const commandHash = security.generateCommandHash(encrypted);
+
   // 格式化 Issue 内容
   const body = `## 🐍 新分数记录
 
@@ -573,6 +583,17 @@ async function submitScoreToGitHub() {
 | 最高速度 | ${gameState.maxSpeedPercent}% |
 | 时间 | ${new Date().toLocaleString('zh-CN')} |
 | UUID | ${scoreData.uuid} |
+
+### 加密数据
+
+\`\`\`
+${encrypted}
+\`\`\`
+
+### 验证信息
+
+- TimeCode: \`${timeCode}\`
+- CommandHash: \`${commandHash}\`
 
 ---
 *自动提交自 [加速贪吃蛇](https://zhy109.github.io/snake/games/snake/)*`;
