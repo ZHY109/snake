@@ -536,7 +536,7 @@ const GITHUB_CONFIG = {
   owner: 'ZHY109',
   repo: 'snake',
   // Token 分段存储
-  _t: ['ghp_IwG', 'bnO4raA', 'IJJwS2p', 'bJuGvkg', 'Y3KiUd0', 'OFsxp'],
+  _t: ['ghp_j4k', 'TOtrr', 'mwMZ4', 'c9f6x', 'Ycmfk', 'GcAam', 'rw1n4', 'xs1'],
   get token() { return this._t.join(''); }
 };
 
