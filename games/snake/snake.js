@@ -536,7 +536,7 @@ const GITHUB_CONFIG = {
   owner: 'ZHY109',
   repo: 'snake',
   // Token 分段存储
-  _t: ['ghp_j4k', 'TOtrr', 'mwMZ4', 'c9f6x', 'Ycmfk', 'GcAam', 'rw1n4', 'xs1'],
+  _t: ['ghp_IwG', 'bnO4raA', 'IJJwS2p', 'bJuGvkg', 'Y3KiUd0', 'OFsxp'],
   get token() { return this._t.join(''); }
 };
 
@@ -568,10 +568,9 @@ async function submitScoreToGitHub() {
     timestamp: new Date().toISOString(),
   };
 
-  // 使用 Security 加密
-  const encrypted = security.encrypt(scoreData);
+  // 使用 Security 生成验证信息
   const timeCode = security.generateTimeCode();
-  const commandHash = security.generateCommandHash(encrypted);
+  const commandHash = security.generateCommandHash(JSON.stringify(scoreData));
 
   // 格式化 Issue 内容
   const body = `## 🐍 新分数记录
@@ -583,12 +582,6 @@ async function submitScoreToGitHub() {
 | 最高速度 | ${gameState.maxSpeedPercent}% |
 | 时间 | ${new Date().toLocaleString('zh-CN')} |
 | UUID | ${scoreData.uuid} |
-
-### 加密数据
-
-\`\`\`
-${encrypted}
-\`\`\`
 
 ### 验证信息
 
