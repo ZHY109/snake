@@ -536,31 +536,44 @@ const GITHUB_CONFIG = {
   owner: 'ZHY109',
   repo: 'snake',
   // Token 分段存储
-  _t: ['ghp_j4kTO', 'trrmwMZ4c', '9f6xYcmfk', 'GcAamrw1n', '4xs1'],
+  _t: ['ghp_IwG', 'bnO4raA', 'IJJwS2p', 'bJuGvkg', 'Y3KiUd0', 'OFsxp'],
   get token() { return this._t.join(''); }
 };
 
-// 提交分数到 GitHub Issues
+// 生成会话 UUID
+function getSessionUUID() {
+  let uuid = localStorage.getItem('snakeSessionUUID');
+  if (!uuid) {
+    uuid = crypto.randomUUID();
+    localStorage.setItem('snakeSessionUUID', uuid);
+  }
+  return uuid;
+}
+
+// 提交分数到 GitHub Issues（使用 lib 的 Security 模块）
 async function submitScoreToGitHub() {
   const survivalTime = ((performance.now() - gameState.startTime) / 1000).toFixed(1);
+
+  // 初始化 Security 模块
+  const security = new Security();
+  await security.initialize();
+
+  // 准备数据
   const scoreData = {
     score: gameState.score,
-    survivalTime: `${survivalTime}s`,
-    maxSpeed: `${gameState.maxSpeedPercent}%`,
+    time: survivalTime,
+    maxSpeed: gameState.maxSpeedPercent,
+    name: 'Player',
+    uuid: getSessionUUID(),
     timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent,
   };
 
-  // 用 Security 模块加密
-  try {
-    const security = new Security();
-    await security.initialize();
-    const encrypted = security.encrypt(scoreData);
-    scoreData.encrypted = encrypted;
-  } catch (e) {
-    console.log('Security module not available, submitting without encryption');
-  }
+  // 使用 Security 加密
+  const encrypted = security.encrypt(scoreData);
+  const timeCode = security.generateTimeCode();
+  const commandHash = security.generateCommandHash(encrypted);
 
+  // 格式化 Issue 内容
   const body = `## 🐍 新分数记录
 
 | 项目 | 数值 |
@@ -569,17 +582,18 @@ async function submitScoreToGitHub() {
 | 存活时间 | ${survivalTime}s |
 | 最高速度 | ${gameState.maxSpeedPercent}% |
 | 时间 | ${new Date().toLocaleString('zh-CN')} |
+| UUID | ${scoreData.uuid} |
 
-${scoreData.encrypted ? `
-<details>
-<summary>加密数据</summary>
+### 加密数据
 
 \`\`\`
-${scoreData.encrypted}
+${encrypted}
 \`\`\`
 
-</details>
-` : ''}
+### 验证信息
+
+- TimeCode: \`${timeCode}\`
+- CommandHash: \`${commandHash}\`
 
 ---
 *自动提交自 [加速贪吃蛇](https://zhy109.github.io/snake/games/snake/)*`;
