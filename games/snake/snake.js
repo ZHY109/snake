@@ -733,4 +733,69 @@ function downloadShareImage(canvas) {
   copyToClipboard(shareText);
 }
 
+// 排行榜功能
+let leaderboardData = null;
+
+async function fetchLeaderboard() {
+  try {
+    const response = await fetch('./leaderboard.json?t=' + Date.now());
+    if (response.ok) {
+      leaderboardData = await response.json();
+      return leaderboardData;
+    }
+  } catch (e) {
+    console.warn('Failed to fetch leaderboard:', e.message);
+  }
+  return null;
+}
+
+function renderLeaderboard(data) {
+  const listEl = document.getElementById('leaderboardList');
+
+  if (!data || !data.leaderboard || data.leaderboard.length === 0) {
+    listEl.innerHTML = '<p class="empty-leaderboard">暂无记录，快来争夺第一吧！</p>';
+    return;
+  }
+
+  const items = data.leaderboard.map((entry, index) => {
+    const isTop3 = index < 3;
+    const rankDisplay = isTop3 ? ['🥇', '🥈', '🥉'][index] : `#${entry.rank}`;
+    const shortUuid = entry.uuid.substring(0, 8);
+    const date = new Date(entry.createdAt).toLocaleDateString('zh-CN');
+
+    return `
+      <div class="leaderboard-item ${isTop3 ? 'top-3' : ''}">
+        <span class="leaderboard-rank">${rankDisplay}</span>
+        <div class="leaderboard-info">
+          <div class="leaderboard-score">${entry.score} 分</div>
+          <div class="leaderboard-details">
+            存活 ${entry.time}s · 速度 ${entry.maxSpeed}% · ${date}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.innerHTML = items;
+}
+
+function setupLeaderboard() {
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+  const leaderboardModal = document.getElementById('leaderboardModal');
+  const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+
+  leaderboardBtn.addEventListener('click', async () => {
+    leaderboardModal.classList.remove('hidden');
+    document.getElementById('leaderboardList').innerHTML = '<p class="loading-text">加载中...</p>';
+
+    const data = await fetchLeaderboard();
+    renderLeaderboard(data);
+  });
+
+  closeLeaderboardBtn.addEventListener('click', () => {
+    leaderboardModal.classList.add('hidden');
+  });
+}
+
 setupUI();
+setupLeaderboard();
