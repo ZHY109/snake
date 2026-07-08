@@ -1,5 +1,10 @@
 name: Update Leaderboard
-  on: [workflow_dispatch, issues]
+
+  on:
+    workflow_dispatch:
+    issues:
+      types: [opened]
+
   jobs:
     update:
       runs-on: ubuntu-latest
