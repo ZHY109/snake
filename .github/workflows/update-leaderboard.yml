@@ -1,3 +1,6 @@
+# Update Leaderboard Workflow
+# Fetches score issues and updates leaderboard.json
+
 name: Update Leaderboard
 
 on:
