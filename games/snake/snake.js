@@ -498,11 +498,18 @@ function setupUI() {
   // 提交分数按钮
   document.getElementById('submitScoreBtn').addEventListener('click', async () => {
     const btn = document.getElementById('submitScoreBtn');
+    const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = '提交中...';
-    await submitScoreToGitHub();
-    btn.disabled = false;
-    btn.textContent = '提交分数';
+    try {
+      await submitScoreToGitHub();
+    } catch (error) {
+      console.error('Submit error:', error);
+      alert('提交失败: ' + error.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   });
 
   // 空格键开始/重启
@@ -554,10 +561,6 @@ function getSessionUUID() {
 async function submitScoreToGitHub() {
   const survivalTime = ((performance.now() - gameState.startTime) / 1000).toFixed(1);
 
-  // 初始化 Security 模块
-  const security = new Security();
-  await security.initialize();
-
   // 准备数据
   const scoreData = {
     score: gameState.score,
@@ -568,13 +571,24 @@ async function submitScoreToGitHub() {
     timestamp: new Date().toISOString(),
   };
 
-  // 使用 Security 加密
-  const encrypted = security.encrypt(scoreData);
-  const timeCode = security.generateTimeCode();
-  const commandHash = security.generateCommandHash(encrypted);
+  // 尝试使用 Security 加密（如果 WASM 加载失败则跳过）
+  let encrypted = '';
+  let timeCode = '';
+  let commandHash = '';
+  try {
+    const security = new Security();
+    await security.initialize();
+    if (security.isInitialized()) {
+      encrypted = security.encrypt(scoreData);
+      timeCode = security.generateTimeCode();
+      commandHash = security.generateCommandHash(encrypted);
+    }
+  } catch (e) {
+    console.warn('Security module not available:', e.message);
+  }
 
   // 格式化 Issue 内容
-  const body = `## 🐍 新分数记录
+  let body = `## 🐍 新分数记录
 
 | 项目 | 数值 |
 |------|------|
@@ -582,7 +596,10 @@ async function submitScoreToGitHub() {
 | 存活时间 | ${survivalTime}s |
 | 最高速度 | ${gameState.maxSpeedPercent}% |
 | 时间 | ${new Date().toLocaleString('zh-CN')} |
-| UUID | ${scoreData.uuid} |
+| UUID | ${scoreData.uuid} |`;
+
+  if (encrypted) {
+    body += `
 
 ### 加密数据
 
@@ -593,7 +610,10 @@ ${encrypted}
 ### 验证信息
 
 - TimeCode: \`${timeCode}\`
-- CommandHash: \`${commandHash}\`
+- CommandHash: \`${commandHash}\``;
+  }
+
+  body += `
 
 ---
 *自动提交自 [加速贪吃蛇](https://zhy109.github.io/snake/games/snake/)*`;
